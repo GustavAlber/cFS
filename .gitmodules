@@ -1,6 +1,6 @@
 [submodule "cfe"]
 	path = cfe
-	url = https://github.com/nasa/cFE.git
+	url = https://github.com/GustavAlber/cFE.git
 	branch = main
 [submodule "osal"]
 	path = osal
