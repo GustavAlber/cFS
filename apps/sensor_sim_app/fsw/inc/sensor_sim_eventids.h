@@ -1,0 +1,8 @@
+#ifndef SENSOR_SIM_APP_EVENTS_H
+#define SENSOR_SIM_APP_EVENTS_H
+
+
+#define SENSOR_SIM_APP_INIT_INF_EID      1
+
+
+#endif
