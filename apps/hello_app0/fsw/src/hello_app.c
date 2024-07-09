@@ -218,7 +218,20 @@ void HELLO_APP_Main(void)
         CFE_EVS_SendEvent(HELLO_APP_INIT_INF_EID, CFE_EVS_EventType_INFORMATION,"data received %f", rec->Temp);
 
         /*Simulate processing*/
-        OS_TaskDelay(100);
+        osal_id_t task_id;
+        const char task_name[254] = "runtime task";
+
+        int32 task=
+        OS_TaskCreate(&task_id,
+                      task_name,
+                      computing,
+                      0,
+                      4096,
+                      10,
+                      0 );
+
+        CFE_EVS_SendEvent(HELLO_APP_INIT_INF_EID, CFE_EVS_EventType_INFORMATION,"task created %i", task);
+
         
         if ((error1 == false) && (error2 == false))
         {
@@ -472,4 +485,12 @@ CFE_Status_t HELLO_APP_Init(void)
     CFE_EVS_SendEvent(HELLO_APP_INIT_INF_EID, CFE_EVS_EventType_INFORMATION, "hello App 0 Initialized.%s",
                           VersionString);
     return status;
+}
+
+void computing(void)
+{
+    CFE_ES_WriteToSysLog("computing now for 3s seperate thread");
+    OS_TaskDelay(2000);
+    CFE_ES_WriteToSysLog("exiting computing thread");
+    OS_TaskExit();
 }

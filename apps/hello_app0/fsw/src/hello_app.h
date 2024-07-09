@@ -104,5 +104,6 @@ typedef struct
 
 void         HELLO_APP_Main(void);
 CFE_Status_t HELLO_APP_Init(void);
+void         computing(void);
 
 #endif /* SAMPLE_APP_H */
