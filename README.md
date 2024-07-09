@@ -1,96 +1,120 @@
-[![Build Linux](https://github.com/nasa/cfs/actions/workflows/build-cfs.yml/badge.svg)](https://github.com/nasa/cfs/actions/workflows/build-cfs.yml)
-[![Build RTEMS 5](https://github.com/nasa/cFS/actions/workflows/build-cfs-rtems5.yml/badge.svg)](https://github.com/nasa/cFS/actions/workflows/build-cfs-rtems5.yml)
-
-# Core Flight System - BUNDLE
-
-The Core Flight System (cFS) is a generic flight software architecture framework used on flagship spacecraft, human spacecraft, cubesats, and Raspberry Pi.  This repository is a bundle of submodules that make up the cFS framework.  Note the "lab" apps are intended as examples only, and enable this bundle to build, execute, receive commands, and send telemetry.  This is not a flight distribution, which is typically made up of the cFE, OSAL, PSP, and a selection of flight apps that correspond to specific mission requirements.
-
-This bundle has not been fully verified as an operational system, and is provided as a starting point vs an end product.  Testing of this bundle consists of building, executing, sending setup commands and verifying receipt of telemetry.  Unit testing is also run, but extensive analysis is not performed.  All verification and validation per mission requirements is the responsibility of the mission (although attempts are made in the cFS Framework to provide a testing framework to facilitate the process).
-
-The cFS Framework is a core subset of cFS.  There are additional OSALs, PSPs, and tools as listed below available from a variety of sources.
-
-## References Documentation
-  - cFE User's Guide: https://github.com/nasa/cFS/blob/gh-pages/cfe-usersguide.pdf
-  - OSAL User's Guide: https://github.com/nasa/cFS/blob/gh-pages/osal-apiguide.pdf
-  - Combined Mission documentation: https://github.com/nasa/cFS/blob/gh-pages/mission-doc.pdf
-  - cFE App Developer's Guide: https://github.com/nasa/cFE/blob/main/docs/cFE%20Application%20Developers%20Guide.md
-  - Training documentation: https://ntrs.nasa.gov/citations/20210022378
-  - cFS Overview: https://cfs.gsfc.nasa.gov/cFS-OviewBGSlideDeck-ExportControl-Final.pdf
-
-## Release Notes
-
-See [releases](https://github.com/nasa/cFS/releases) for release history and associated artifacts related to the cFS BUNDLE.
-
-**Aquila: OFFICIAL RELEASE**:
-  - Released under Apache 2.0
-  - Includes cFE 6.7.0 (cFE, PSP, framework apps, and framework tools as marked) and OSAL 5.0.0
-
-**cFS 6.6.0a Suite: OFFICIAL RELEASE**:
-  - cFE 6.6.0a is released under Apache 2.0 license, see [LICENSE](https://github.com/nasa/cFE/blob/v6.6.0a/LICENSE-18128-Apache-2_0.pdf)
-  - OSAL 4.2.1a is released under the NOSA license, see [LICENSE](https://github.com/nasa/osal/blob/osal-4.2.1a/LICENSE)
-  - [Release notes](https://github.com/nasa/cFE/blob/v6.6.0a/docs/cFE_release_notes.md)
-  - [Version description document](https://github.com/nasa/cFE/blob/v6.6.0a/docs/cFE_6_6_0_version_description.md)
-  - [Test results](https://github.com/nasa/cFE/tree/v6.6.0a/test-and-ground/test-review-packages/Results)
-
-Other elements listed below are released under a variety of licenses as detailed in their respective repositories.
 
 ## Known issues
 
-Historical version description documents contain references to internal repositories and sourceforge, which is no longer in use.  Not all markdown documents have been updated for GitHub.
+The internal structure consists of four Apps:
 
-See related repositories for current open issues.
+1. hello_app0
+2. hello_app1
+3. hello_app2
+4. sensor_sim_app
 
-## Major future work
+sensor_sim_app deliveres sensor data through a pipe to all hello_app*.
+Each five seconds one "faulty" value is generated.
+The faulty value will be randomly distributed to one of the hello_app*.
+All hello_app* run in parralell an communicate with each other over pipes.
+They will internally compare the values, vote in comparison with each other and try to consent on one app to deliver the result.
 
-### Caelum (aka 7.0) Major release development plans (Targeting end of 2020 for release candidate)
+A correct output will look like:
+```
+  EVS Port1 1980-012-14:03:21.70680 66/1/HELLO_APP0 1: hello App 0 Votind ident
+  EVS Port1 1980-012-14:03:21.70686 66/1/HELLO_APP2 1: hello App 2 Votind ident
+  EVS Port1 1980-012-14:03:21.70703 66/1/HELLO_APP1 1: hello App 1 Votind ident
+  EVS Port1 1980-012-14:03:21.70866 66/1/HELLO_APP0 1: Use APP0 result
+  EVS Port1 1980-012-14:03:21.70878 66/1/HELLO_APP2 1: Use APP0 result
+  EVS Port1 1980-012-14:03:21.70903 66/1/HELLO_APP1 1: Use APP0 result
+```
 
-  - Certification framework with automated build verification tests of framework requirements
-    - Executable on real/emulated/simulated/ or dockerized targets
-    - Add PSP coverage testing framework (nasa/psp#184, nasa/psp#174)
-    - Add PSP and cFE functional testing framework for APIs  (nasa/cfe#779)
-    - Scrub OSAL coverage and functional tests
-    - Scrub cFE coverage tests
-    - Add cFE API functional tests
-    - NOTE: Command verification pending tool open source release
-  - Documentation (updated traceability, APIs/ICDs, general update)
-  - Framework for mission customization of core services
-    - Header customization support (nasa/cFE#726)
-  - Remove deprecated code
-  - Cmd/Tlm structure scrub for alignment/padding/consistency
-  - Library query and reporting and ES resource management (nasa/cFE#28, nasa/cFE#797)
+As soon as one of the applications receives a incorrect value, the Instances might constent to use another apps result.
+The faulty app will through the voting process recognize its incorrect behavior and will initiate a restart.
+While restarting the Programm will switch to error mode and the values will be handed through.
+After the faulty app is restartet, it will communicate its recovery and the Programm should continue as normal:
 
-### Other (may not make 7.0)
-  - Open source automated build verification execution framework for emulated targets (likely docker based)
-  - Deployment quality of life improvements (configuration, transition to CMake source selection vs compiler directives)
-  - Update OS support (VxWorks 7, RTEMS 5)
-  - Time services refactor
-  - Symmetric multi-processing APIs
-  - Electronic Data Sheet integration option and improvements to packet layouts for portability/consistency
-  - Toolchain updates
+A correct output will look like:
+```
+  EVS Port1 1980-012-14:03:24.70875 66/1/HELLO_APP1 1: hello App 1 Votind APP0 down27.120000
+  EVS Port1 1980-012-14:03:24.70878 66/1/HELLO_APP0 1: hello App 0 Votind APP0 down27.120000
+  EVS Port1 1980-012-14:03:24.70878 66/1/HELLO_APP2 1: hello App 2 Votind APP0 down27.120000
+  EVS Port1 1980-012-14:03:24.70886 66/1/HELLO_APP0 1: Use APP1 result
+  EVS Port1 1980-012-14:03:24.70887 66/1/HELLO_APP1 1: Use APP1 result
+  1980-012-14:03:24.70890 CFE_ES_RestartApp: Restart Application HELLO_APP0 Initiated
+  EVS Port1 1980-012-14:03:24.70895 66/1/HELLO_APP2 1: Use APP1 result
+  1980-012-14:03:24.70910 CFE_ES_ExitApp: Application HELLO_APP0 called CFE_ES_ExitApp
+  EVS Port1 1980-012-14:03:24.70919 66/1/HELLO_APP1 1: data received 26.120000
+  EVS Port1 1980-012-14:03:24.70922 66/1/HELLO_APP2 1: data received 26.120000
+  EVS Port1 1980-012-14:03:24.80934 66/1/HELLO_APP2 1: We are in error mode
+  EVS Port1 1980-012-14:03:24.80935 66/1/HELLO_APP1 1: We are in error mode
+  EVS Port1 1980-012-14:03:25.46072 66/1/CFE_ES 10: Restart Application HELLO_APP0 Completed, AppID=1114123
+  EVS Port1 1980-012-14:03:25.51100 66/1/HELLO_APP0 1: hello App 0 Initialized. V0.000.0001
+  EVS Port1 1980-012-14:03:25.61128 66/1/HELLO_APP0 1: up message 0xB5 received
+  EVS Port1 1980-012-14:03:25.61131 66/1/HELLO_APP0 1: up message 0xC5 received
+  EVS Port1 1980-012-14:03:25.70877 66/1/HELLO_APP2 1: data received 26.120000
+  EVS Port1 1980-012-14:03:25.70880 66/1/HELLO_APP1 1: data received 26.120000
+  EVS Port1 1980-012-14:03:25.70884 66/1/HELLO_APP0 1: data received 26.120000
+  EVS Port1 1980-012-14:03:25.70895 66/1/HELLO_APP0 1: task created 0
+  EVS Port1 1980-012-14:03:25.80903 66/1/HELLO_APP1 1: We are in error mode
+  EVS Port1 1980-012-14:03:25.80903 66/1/HELLO_APP2 1: We are in error mode
+  EVS Port1 1980-012-14:03:25.80912 66/1/HELLO_APP2 1: up message 0xA6 received
+  EVS Port1 1980-012-14:03:25.80912 66/1/HELLO_APP1 1: up message 0xA5 received
+  EVS Port1 1980-012-14:03:26.70896 66/1/HELLO_APP2 1: data received 26.120000
+  EVS Port1 1980-012-14:03:26.70903 66/1/HELLO_APP1 1: data received 26.120000
+  EVS Port1 1980-012-14:03:26.80929 66/1/HELLO_APP0 1: hello App 0 Votind ident
+  EVS Port1 1980-012-14:03:26.80931 66/1/HELLO_APP2 1: hello App 2 Votind ident
+  EVS Port1 1980-012-14:03:26.80937 66/1/HELLO_APP1 1: hello App 1 Votind ident
+  EVS Port1 1980-012-14:03:26.80944 66/1/HELLO_APP2 1: Use APP0 result
+  EVS Port1 1980-012-14:03:26.80944 66/1/HELLO_APP1 1: Use APP0 result
+  EVS Port1 1980-012-14:03:26.80946 66/1/HELLO_APP2 1: data received 26.120000
+  EVS Port1 1980-012-14:03:26.80950 66/1/HELLO_APP0 1: Use APP0 result
+```
 
-## Getting Help
+<span style="color:red">
+However, recovery is a little unstable.
+I think its mostly through synchronisation issues.
+A good indicator for a catastrophy is a broken consens:
+</span>
 
-### Discussions 
+```
+  EVS Port1 1980-012-14:03:29.81019 66/1/HELLO_APP2 1: Consens BROKE!!
+  EVS Port1 1980-012-14:03:29.81021 66/1/HELLO_APP2 1: Consens BROKE!!
+  EVS Port1 1980-012-14:03:29.81022 66/1/HELLO_APP2 1: Use APP0 result
+  EVS Port1 1980-012-14:03:29.81024 66/1/HELLO_APP0 1: Consens BROKE!!
+  EVS Port1 1980-012-14:03:29.81039 66/1/HELLO_APP1 1: Consens BROKE!!
+  EVS Port1 1980-012-14:03:29.81069 66/1/HELLO_APP0 1: Consens BROKE!!
+  EVS Port1 1980-012-14:03:29.81095 66/1/HELLO_APP1 1: Consens BROKE!!
+  EVS Port1 1980-012-14:03:29.81112 66/1/HELLO_APP2 1: data received 26.120000
+  EVS Port1 1980-012-14:03:29.81117 66/1/HELLO_APP0 1: Use APP0 result
+  EVS Port1 1980-012-14:03:29.81121 66/1/HELLO_APP1 1: Use APP0 result
+  1980-012-14:03:29.81146 CFE_ES_RestartApp: Restart Application HELLO_APP1 Initiated
+  1980-012-14:03:29.81147 CFE_ES_ExitApp: Application HELLO_APP1 called CFE_ES_ExitApp
+  EVS Port1 1980-012-14:03:29.91156 66/1/HELLO_APP2 1: We are in error mode
+  EVS Port1 1980-012-14:03:30.70999 66/1/HELLO_APP2 1: data received 26.120000
+  EVS Port1 1980-012-14:03:30.71002 66/1/HELLO_APP0 1: data received 26.120000
+  EVS Port1 1980-012-14:03:30.71008 66/1/HELLO_APP0 1: task created 0
+  EVS Port1 1980-012-14:03:30.71008 66/1/HELLO_APP0 1: We are in error mode
+  EVS Port1 1980-012-14:03:30.71009 66/1/HELLO_APP0 1: data received 26.120000
+  EVS Port1 1980-012-14:03:30.71009 66/1/HELLO_APP0 1: task created -15
+  EVS Port1 1980-012-14:03:30.71011 66/1/HELLO_APP0 1: We are in error mode
+  1980-012-14:03:30.71013 computing now for 3s seperate thread
+  EVS Port1 1980-012-14:03:30.71224 66/1/CFE_ES 10: Restart Application HELLO_APP1 Completed, AppID=1114124
+  EVS Port1 1980-012-14:03:30.76255 66/1/HELLO_APP1 1: hello App 0 Initialized. V0.000.0001
+  EVS Port1 1980-012-14:03:30.81024 66/1/HELLO_APP2 1: We are in error mode
+  EVS Port1 1980-012-14:03:30.86279 66/1/HELLO_APP1 1: up message 0xC5 received
+  EVS Port1 1980-012-14:03:31.71020 66/1/HELLO_APP2 1: data received 26.120000
+  EVS Port1 1980-012-14:03:31.71025 66/1/HELLO_APP0 1: data received 26.120000
+  EVS Port1 1980-012-14:03:31.71029 66/1/HELLO_APP0 1: task created -15
+  EVS Port1 1980-012-14:03:31.71031 66/1/HELLO_APP0 1: We are in error mode
+```
+At that point we will stay in error mode for ever.
 
-You can [start a new discussion](https://github.com/nasa/cFS/discussions/new) for discussions, questions, or ideas, in the cFS repository under the Discussions tab.
 
-### Join the mailing list
 
-To **subscribe to our mailing list,** send an email to cfs-community-join@lists.nasa.gov with the word *subscribe* in the subject line.
 
-The cfs-community mailing list includes cFS users and developers. The cFS Product Team also uses the mailing list to share information on current and future releases, bug findings and fixes, enhancement requests, community meetings, etc.
 
-If you'd like to unsubscribe, send an email with the word *unsubscribe* to cfs-community-leave@lists.nasa.gov. Mailing list requests are typically processed within 5 minutes.
-
-### Contact the cFS Product Team
-
-You can email the cFS Product Team at cfs-program@lists.nasa.gov to explore partnerships and other arrangements for in-depth support.
 
 ## Setup
 
 Ensure the following software are installed: Make, CMake, GCC, and Git.  To setup the cFS BUNDLE directly from the latest set of interoperable repositories:
 
-    git clone https://github.com/nasa/cFS.git
+    git clone https://github.com/GustavAlber/cFS.git
     cd cFS
     git submodule init
     git submodule update
@@ -102,87 +126,11 @@ Copy in the default makefile and definitions:
 
 ## Build and Run
 
-The cFS Framework including sample applications will build and run on the pc-linux platform support package (should run on most Linux distributions), via the steps described in https://github.com/nasa/cFE/tree/master/cmake/README.md.  Quick-start is below:
-
-To prep, compile, and run on the host (from cFS directory above) as a normal user (best effort message queue depth and task priorities):
-
     make SIMULATION=native prep
     make
     make install
     cd build/exe/cpu1/
     ./core-cpu1
 
-Should see startup messages, and CFE_ES_Main entering OPERATIONAL state.  Note the code must be executed from the build/exe/cpu1 directory to find the startup script and shared objects.
 
-Note: The steps above are for a debug, permissive mode build and includes deprecated elements.  For a release build, recommendation is `make BUILDTYPE=release OMIT_DEPRECATED=true prep`.  Unit tests can be added with `ENABLE_UNIT_TESTS=true`, run with `make test`, and coverage reported with `make lcov`.
-
-## Send commands, receive telemetry
-
-The cFS-GroundSystem tool can be used to send commands and receive telemetry.  For details on using and setting up the Ground System, see the [Guide-GroundSystem](https://github.com/nasa/cFS-GroundSystem/blob/main/Guide-GroundSystem.md).  Note it depends on PyQt5 and PyZMQ:
-
-1. Install PyQt5 and PyZMQ on your system.  Some systems may also require installing libcanberra-gtk-module.
-
-2. Compile cmdUtil and start the ground system executable
-
-       cd tools/cFS-GroundSystem/Subsystems/cmdUtil
-       make
-       cd ../..
-       python3 GroundSystem.py
-
-3. Select "Start Command System"
-4. Select "Enable Tlm"
-5. Enter IP address of system executing cFS, 127.0.0.1 if running locally
-
-Should see telemetry, can send noops and see command counters increment.
-
-## Compatible list of cFS apps
-
-The following applications have been tested against this release:
-  - TBD
-
-## Other cFS related elements/tools/apps/distributions
-
-The following list is user submitted, and not CCB controlled.  They are released by various organizations, under various licenses.
-
-  - Distributions
-    - cFS-101: Virtual machine distribution at https://github.com/nasa/CFS-101
-    - OpenSatKit: Open source kit for satellite software at https://github.com/OpenSatKit/OpenSatKit
-  - Other Ground station software
-    - cFS-EDS-GroundStation: Ground station implemented via EDS at https://github.com/nasa/cFS-EDS-GroundStation
-  - Other Apps
-    - CS: Checksum application at https://github.com/nasa/CS
-    - CF: CFDP application at https://github.com/nasa/CF
-    - CI: Command Ingest application at https://github.com/nasa/CFS_CI
-    - DS: Data Store application at https://github.com/nasa/DS
-    - FM: File Manager application at https://github.com/nasa/FM
-    - HK: Housekeeping application at https://github.com/nasa/HK
-    - HS: Health and Safety application at https://github.com/nasa/HS
-    - LC: Limit Checker application at https://github.com/nasa/LC
-    - MD: Memory Dwell application at https://github.com/nasa/MD
-    - MM: Memory Manager application at https://github.com/nasa/MM
-    - SBN: Software Bus Network application at https://github.com/nasa/SBN
-    - SC: Stored Commands application at https://github.com/nasa/SC
-    - SCA: Stored Command Absolute application at https://github.com/nasa/SCA
-    - SCH: Scheduler application at https://github.com/nasa/SCH
-    - TO: Telemetry Output application at https://github.com/nasa/CFS_TO
-    - Skeleton App: A bare-bones application to which you can add your business logic at https://github.com/nasa/skeleton_app
-  - Other Interfaces
-    - SIL: Simulink Interface Layer at https://github.com/nasa/SIL
-    - ECI: External Code Interface at https://github.com/nasa/ECI
-    - SBN-Client: External code interface to SBN at https://github.com/nasa/SBN-Client
-  - Other Libraries
-    - cFS_IO_LIB: IO library at https://github.com/nasa/CFS_IO_LIB
-    - cFS_LIB: at https://github.com/nasa/cfs_lib
-    - EdsLib: CCSDS SOIS Electronic Data Sheet Tool and Library at https://github.com/nasa/EdsLib
-    - fs_lib: File services library at https://github.com/nasa/fs_lib
-  - Other Tools
-    - CTF: cFS Test Framework at https://github.com/nasa/CTF
-    - CCDD: Command and Data Dictionary Tool at https://github.com/nasa/CCDD
-    - Perfutils-java: Java based performance analyzer for cFS at https://github.com/nasa/perfutils-java
-    - gen_sch_tbl: Tool to generated SCH app tables at https://github.com/nasa/gen_sch_tbl
-    - CryptoLib: Software-only CCSDS Space Data Link Security Protocol - Extended Procedures (SDLS-EP) at https://github.com/nasa/CryptoLib
-  - Other OSALs
-    - TBD
-  - Other PSPs
-    - TBD
 
