@@ -27,6 +27,7 @@
 
 #ifndef HELLO_APP_H
 #define HELLO_APP_H
+
 typedef struct
 {
   CFE_MSG_TelemetryHeader_t TelemetryHeader;
@@ -50,6 +51,17 @@ typedef struct
   uint8          ErrCounter;
   double         Temp;
 } SIM_TempPacket_t;
+
+typedef struct
+{
+  CFE_MSG_TelemetryHeader_t TelemetryHeader;
+
+  /*
+  ** Task command interface counters...
+  */
+  uint8          CmdCounter;
+  uint8          ErrCounter;
+} SIM_UpPacket_t;
 
 typedef struct
 {
@@ -82,6 +94,9 @@ typedef struct
 
     SIM_ConPacket_t ConsentMessage1;
     SIM_ConPacket_t ConsentMessage2;
+
+    SIM_UpPacket_t UpMessage1;
+    SIM_UpPacket_t UpMessage2;
 
 
 } HELLO_APP_Data_t;

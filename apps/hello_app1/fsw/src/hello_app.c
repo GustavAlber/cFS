@@ -47,7 +47,8 @@ void HELLO_APP_Main(void)
     CFE_SB_Buffer_t *SBBufPtrVote2;
     CFE_SB_Buffer_t *SBBufPtrCon1;
     CFE_SB_Buffer_t *SBBufPtrCon2;
-    bool error = false;
+    bool error1 = true;
+    bool error2 = true;
 
     /*
     ** Perform application-specific initialization
@@ -138,10 +139,96 @@ void HELLO_APP_Main(void)
     }
 
     /*
+    * Initialize Up messages
+    */
+    status = CFE_MSG_Init(CFE_MSG_PTR(HELLO_APP_Data.UpMessage1.TelemetryHeader), /* Location of SB Message Data Buffer */
+                            CFE_SB_ValueToMsgId(0xB5),                     /* SB Message ID associated with Data */
+                            sizeof(HELLO_APP_Data.UpMessage1));      /* Size of Buffer */
+
+    status = CFE_MSG_Init(CFE_MSG_PTR(HELLO_APP_Data.UpMessage2.TelemetryHeader), /* Location of SB Message Data Buffer */
+                            CFE_SB_ValueToMsgId(0xB6),                     /* SB Message ID associated with Data */
+                            sizeof(HELLO_APP_Data.UpMessage2));      /* Size of Buffer */
+    
+    status = CFE_SB_Subscribe(CFE_SB_ValueToMsgId(0xB5), HELLO_APP_Data.Data1Pipe);
+    if (status != CFE_SUCCESS)
+    {
+        CFE_EVS_SendEvent(HELLO_APP_INIT_INF_EID, CFE_EVS_EventType_ERROR,
+                            "Hello App: Error Subscribing to HK request, RC = 0x%08lX", (unsigned long)status);
+    }
+    status = CFE_SB_Subscribe(CFE_SB_ValueToMsgId(0xB6), HELLO_APP_Data.Data2Pipe);
+    if (status != CFE_SUCCESS)
+    {
+        CFE_EVS_SendEvent(HELLO_APP_INIT_INF_EID, CFE_EVS_EventType_ERROR,
+                            "Hello App: Error Subscribing to HK request, RC = 0x%08lX", (unsigned long)status);
+    }
+
+    CFE_SB_TimeStampMsg(CFE_MSG_PTR(HELLO_APP_Data.UpMessage1.TelemetryHeader));
+    status = CFE_SB_TransmitMsg(CFE_MSG_PTR(HELLO_APP_Data.UpMessage1.TelemetryHeader),true);
+    if (status != CFE_SUCCESS)
+    {
+        CFE_ES_WriteToSysLog("UP MSG transmit error, RC = 0x%08lX\n", (unsigned long)status);
+    }
+    CFE_SB_TimeStampMsg(CFE_MSG_PTR(HELLO_APP_Data.UpMessage2.TelemetryHeader));
+    status = CFE_SB_TransmitMsg(CFE_MSG_PTR(HELLO_APP_Data.UpMessage2.TelemetryHeader),true);
+    if (status != CFE_SUCCESS)
+    {
+        CFE_ES_WriteToSysLog("UP MSG transmit error, RC = 0x%08lX\n", (unsigned long)status);
+    }
+
+    /*
     ** Sample App Runloop
     */
     while (CFE_ES_RunLoop(&HELLO_APP_Data.RunStatus) == true)
     {
+
+        if(error1 == true)
+        {
+            status = CFE_SB_GetPipeIdByName(&HELLO_APP_Data.RecVote1Pipe, HELLO_APP_Data.RecVote1PipeName);
+            if (status == CFE_SUCCESS)
+            {
+                status= CFE_SB_ReceiveBuffer(&SBBufPtr, HELLO_APP_Data.RecVote1Pipe,CFE_SB_POLL);
+                if (status == CFE_SUCCESS)
+                {
+                    CFE_SB_MsgId_t MsgId;
+                    SIM_TempPacket_t*rec = (SIM_TempPacket_t*)SBBufPtr;
+                    CFE_MSG_GetMsgId((CFE_MSG_Message_t*)rec, &MsgId);
+                    if(CFE_SB_MsgIdToValue(MsgId) == 0xA5)
+                    {
+                        CFE_EVS_SendEvent(HELLO_APP_INIT_INF_EID, CFE_EVS_EventType_INFORMATION,"up message 0xA5 received");
+                        error1 = false;
+                    }
+                    else
+                    {
+                        CFE_EVS_SendEvent(HELLO_APP_INIT_INF_EID, CFE_EVS_EventType_INFORMATION,"different message1 received %x", CFE_SB_MsgIdToValue(MsgId));
+                    }
+                }
+            }
+        }
+        if(error2 == true)
+        {
+            status = CFE_SB_GetPipeIdByName(&HELLO_APP_Data.RecVote2Pipe, HELLO_APP_Data.RecVote2PipeName);
+            if (status == CFE_SUCCESS)
+            {
+                status= CFE_SB_ReceiveBuffer(&SBBufPtr, HELLO_APP_Data.RecVote2Pipe,CFE_SB_POLL);
+                if (status == CFE_SUCCESS)
+                {
+                    CFE_SB_MsgId_t MsgId;
+                    SIM_TempPacket_t*rec = (SIM_TempPacket_t*)SBBufPtr;
+                    CFE_MSG_GetMsgId((CFE_MSG_Message_t*)rec, &MsgId);
+                    if(CFE_SB_MsgIdToValue(MsgId) == 0xC6)
+                    {
+                        CFE_EVS_SendEvent(HELLO_APP_INIT_INF_EID, CFE_EVS_EventType_INFORMATION,"up message 0xC5 received");
+                        error2 = false;
+                    }
+                    else
+                    {
+                        CFE_EVS_SendEvent(HELLO_APP_INIT_INF_EID, CFE_EVS_EventType_INFORMATION,"different message2 received %x", CFE_SB_MsgIdToValue(MsgId));
+                    }
+                }
+            }
+        }
+
+
         /* Pend on receipt of command packet */
         status = CFE_SB_ReceiveBuffer(&SBBufPtr, HELLO_APP_Data.RecPipe, CFE_SB_PEND_FOREVER);
         SIM_TempPacket_t* rec = (SIM_TempPacket_t*)SBBufPtr;
@@ -150,7 +237,7 @@ void HELLO_APP_Main(void)
 
         /*Simulate processing*/
         OS_TaskDelay(100);
-        if (error == false)
+        if ((error1 == false) && (error2 == false))
         {
             /*Sed data to siblings to vote*/
             CFE_SB_TimeStampMsg(CFE_MSG_PTR(HELLO_APP_Data.VotingMessage1.TelemetryHeader));
@@ -201,7 +288,7 @@ void HELLO_APP_Main(void)
                 HELLO_APP_Data.ConsentMessage2.con[0] = true;
                 HELLO_APP_Data.ConsentMessage2.con[1] = true;
                 HELLO_APP_Data.ConsentMessage2.con[2] = false;
-                error = true;
+                error2 = true;
             }
             else if(own == app2)
             {
@@ -212,8 +299,8 @@ void HELLO_APP_Main(void)
                 HELLO_APP_Data.ConsentMessage2.con[0] = false;
                 HELLO_APP_Data.ConsentMessage2.con[1] = true;
                 HELLO_APP_Data.ConsentMessage2.con[2] = true;
-                error = true;
-            }
+                error1 = true;
+             }
             else if(app0 == app2)
             {
                 CFE_EVS_SendEvent(HELLO_APP_INIT_INF_EID, CFE_EVS_EventType_INFORMATION,"hello App 1 Votind APP1 down%f", own);
@@ -223,7 +310,6 @@ void HELLO_APP_Main(void)
                 HELLO_APP_Data.ConsentMessage2.con[0] = true;
                 HELLO_APP_Data.ConsentMessage2.con[1] = false;
                 HELLO_APP_Data.ConsentMessage2.con[2] = true;
-                error = true;
             }
             else 
             {
@@ -234,7 +320,8 @@ void HELLO_APP_Main(void)
                 HELLO_APP_Data.ConsentMessage2.con[0] = false;
                 HELLO_APP_Data.ConsentMessage2.con[1] = false;
                 HELLO_APP_Data.ConsentMessage2.con[2] = false;
-                error = true;
+                error1 = true;
+                error2 = true;
             }
             
             /*Distribute voting result*/
@@ -250,6 +337,25 @@ void HELLO_APP_Main(void)
             if (status != CFE_SUCCESS)
             {
                 CFE_ES_WriteToSysLog("Temp Sim App MSG transmit error, RC = 0x%08lX\n", (unsigned long)status);
+            }
+
+            if(error1)
+            {
+                CFE_SB_TimeStampMsg(CFE_MSG_PTR(HELLO_APP_Data.UpMessage1.TelemetryHeader));
+                status = CFE_SB_TransmitMsg(CFE_MSG_PTR(HELLO_APP_Data.UpMessage1.TelemetryHeader),true);
+                if (status != CFE_SUCCESS)
+                {
+                    CFE_ES_WriteToSysLog("UP MSG transmit error, RC = 0x%08lX\n", (unsigned long)status);
+                }
+            }
+            if(error2)
+            {
+                CFE_SB_TimeStampMsg(CFE_MSG_PTR(HELLO_APP_Data.UpMessage2.TelemetryHeader));
+                status = CFE_SB_TransmitMsg(CFE_MSG_PTR(HELLO_APP_Data.UpMessage2.TelemetryHeader),true);
+                if (status != CFE_SUCCESS)
+                {
+                    CFE_ES_WriteToSysLog("UP MSG transmit error, RC = 0x%08lX\n", (unsigned long)status);
+                }
             }
 
             /*Consense?*/
