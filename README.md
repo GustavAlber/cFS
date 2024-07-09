@@ -8,11 +8,8 @@ The internal structure consists of four Apps:
 3. hello_app2
 4. sensor_sim_app
 
-sensor_sim_app deliveres sensor data through a pipe to all hello_app*.
-Each five seconds one "faulty" value is generated.
-The faulty value will be randomly distributed to one of the hello_app*.
-All hello_app* run in parralell an communicate with each other over pipes.
-They will internally compare the values, vote in comparison with each other and try to consent on one app to deliver the result.
+
+sensor_sim_app delivers sensor data through a pipe to all hello_app*. Each five seconds one "faulty" value is generated. The faulty value will be randomly distributed to one of the hello_app*. All hello_app* run in parallel and communicate with each other over pipes. They will internally compare the values, vote in comparison with each other and try to consent on one app to deliver the result.
 
 A correct output will look like:
 ```
@@ -24,12 +21,9 @@ A correct output will look like:
   EVS Port1 1980-012-14:03:21.70903 66/1/HELLO_APP1 1: Use APP0 result
 ```
 
-As soon as one of the applications receives a incorrect value, the Instances might constent to use another apps result.
-The faulty app will through the voting process recognize its incorrect behavior and will initiate a restart.
-While restarting the Programm will switch to error mode and the values will be handed through.
-After the faulty app is restartet, it will communicate its recovery and the Programm should continue as normal:
+As soon as one of the applications receives an incorrect value, the Instances might consent to use other apps' results. The faulty app will through the voting process recognize its incorrect behavior and will initiate a restart. While restarting the Program will switch to error mode and the values will be handed through. After the faulty app is restarted, it will communicate its recovery and the Programm should continue as normal:
 
-A correct output will look like:
+A correct output will look like:  
 ```
   EVS Port1 1980-012-14:03:24.70875 66/1/HELLO_APP1 1: hello App 1 Votind APP0 down27.120000
   EVS Port1 1980-012-14:03:24.70878 66/1/HELLO_APP0 1: hello App 0 Votind APP0 down27.120000
@@ -66,10 +60,9 @@ A correct output will look like:
   EVS Port1 1980-012-14:03:26.80950 66/1/HELLO_APP0 1: Use APP0 result
 ```
 
-<span style="color:red">
-However, recovery is a little unstable.
-I think its mostly through synchronisation issues.
-A good indicator for a catastrophy is a broken consens:
+<span style="color:red; font-size:2em">
+However, recovery is a little unstable. I think it's mostly through synchronisation issues.
+A good indicator for a catastrophe is a broken consens:
 </span>
 
 ```
@@ -103,7 +96,7 @@ A good indicator for a catastrophy is a broken consens:
   EVS Port1 1980-012-14:03:31.71029 66/1/HELLO_APP0 1: task created -15
   EVS Port1 1980-012-14:03:31.71031 66/1/HELLO_APP0 1: We are in error mode
 ```
-At that point we will stay in error mode for ever.
+At that point we will stay in error mode forever.
 
 
 
